@@ -41,7 +41,7 @@ h1 em{font-style:italic;color:var(--pine);}
   padding:9px 14px;cursor:pointer;}
 .assume-toggle svg{width:11px;height:7px;fill:none;stroke:currentColor;stroke-width:1.6;transition:transform .2s;}
 .assume-toggle.open svg{transform:rotate(180deg);}
-.assume{display:none;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:14px;
+.assume{display:none;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:14px;margin-top:14px;
   background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:16px;}
 .assume.open{display:grid;}
 @media(max-width:680px){.assume.open{grid-template-columns:1fr 1fr;}}
@@ -55,6 +55,14 @@ h1 em{font-style:italic;color:var(--pine);}
 .numbox input{flex:1;border:none;background:transparent;font-family:'IBM Plex Mono',monospace;
   font-size:14px;color:var(--ink);padding:9px 4px;width:100%;}
 .numbox input:focus{outline:none;}
+.numbox .suf{margin-left:4px;}
+.after{margin-top:13px;border-top:1px dashed var(--line);padding-top:12px;}
+.after-h{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.07em;
+  text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.after-row{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;padding:3px 0;align-items:baseline;}
+.after-row>span:first-child{color:var(--muted);}
+.av{font-family:'IBM Plex Mono',monospace;text-align:right;}
+.av b{color:var(--clay);font-weight:600;}
 
 /* compare grid */
 .compare{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:24px;}
@@ -153,7 +161,7 @@ select:hover{border-color:var(--pine2);}
 <div class="wrap">
   <div class="eyebrow">Franklin, TN · assisted-living planner</div>
   <h1>Compare two communities —<br><em>cost and how long the savings last</em></h1>
-  <p class="sub">Set up each side however you like — community, room, residents, care levels. The head-to-head below shows the annual cost and the runway, with and without VA Aid&nbsp;&amp;&nbsp;Attendance.</p>
+  <p class="sub">Set up each side however you like — community, room, residents, care levels. The head-to-head below shows annual cost, the runway with and without VA Aid&nbsp;&amp;&nbsp;Attendance, and what the family would cover after savings run out. Open <b>Financial assumptions</b> to set income, an optional return on remaining assets, and the expected years in care.</p>
 
   <button class="assume-toggle" id="assumeBtn" aria-expanded="false">
     <span>Financial assumptions</span>
@@ -164,6 +172,8 @@ select:hover{border-color:var(--pine2);}
     <div class="numfield"><label>Liquid assets <em>· IRA + bank</em></label><div class="numbox"><span>$</span><input type="number" id="fin-assets" value="211198"></div></div>
     <div class="numfield"><label>VA A&amp;A / mo <em>· vet + 1 dep</em></label><div class="numbox"><span>$</span><input type="number" id="fin-aa" value="2874"></div></div>
     <div class="numfield"><label>VA net-worth limit <em>· 2026</em></label><div class="numbox"><span>$</span><input type="number" id="fin-limit" value="163699"></div></div>
+    <div class="numfield"><label>Return on assets <em>· %/yr</em></label><div class="numbox"><input type="number" id="fin-ret" value="0" step="0.5"><span class="suf">%</span></div></div>
+    <div class="numfield"><label>Expected years in care <em>· horizon</em></label><div class="numbox"><input type="number" id="fin-horizon" value="5" step="1"><span class="suf">yrs</span></div></div>
   </div>
 
   <div class="compare">
@@ -248,7 +258,7 @@ var SCALE=20;
 
 /* ---------------- STATE ---------------- */
 var state={
-  fin:{income:6000,assets:211198,aa:2874,limit:163699},
+  fin:{income:6000,assets:211198,aa:2874,limit:163699,ret:0,horizon:5},
   sides:{
     A:{fac:"canterfield",type:"al",room:7,couple:true,r1:{care:0,med:0,enh:0},r2:{care:0,med:0,enh:0}},
     B:{fac:"somerby",type:"al",room:1,couple:true,r1:{care:0,med:0,enh:0},r2:{care:0,med:0,enh:0}}
@@ -268,22 +278,38 @@ function residentCost(t,r){
   var e=t.enhLevels?(t.enhLevels[clamp(r.enh,t.enhLevels)].price||0):0;
   return c+m+e;
 }
+function simulate(monthly,fin,useVA){
+  /* month-by-month: assets earn the assumed return, then the net shortfall is drawn.
+     With VA, A&A turns on once assets fall to/below the net-worth limit. */
+  var r=Math.pow(1+(fin.ret||0),1/12)-1;
+  var assets=fin.assets, CAP=1200, aaStart=-1;
+  for(var m=1;m<=CAP;m++){
+    if(useVA&&aaStart<0&&assets<=fin.limit) aaStart=m-1;
+    var elig=useVA&&assets<=fin.limit;
+    var net=fin.income+(elig?fin.aa:0)-monthly;
+    assets=assets*(1+r)+net;
+    if(assets<=0) return {months:m,aaStart:aaStart<0?0:aaStart};
+  }
+  return {months:Infinity,aaStart:aaStart<0?0:aaStart};
+}
 function compute(s,fin){
   var t=getType(s); var room=t.rooms[clamp(s.room,t.rooms)];
   var second=s.couple?(t.secondPerson||0):0;
   var c1=residentCost(t,s.r1); var c2=s.couple?residentCost(t,s.r2):0;
   var monthly=room.price+second+c1+c2; var annual=monthly*12;
   var gap=monthly-fin.income, gapAA=monthly-fin.income-fin.aa;
-  var yearsNo,yearsVA,aaStart;
-  if(gap<=0){yearsNo=Infinity;yearsVA=Infinity;aaStart=0;}
-  else{
-    yearsNo=fin.assets/(gap*12);
-    var p1=Math.max(0,fin.assets-fin.limit), m1=p1/gap, p2=fin.assets-p1;
-    var m2=gapAA<=0?Infinity:p2/gapAA;
-    yearsVA=isFinite(m2)?(m1+m2)/12:Infinity; aaStart=m1;
-  }
+  var simNo=simulate(monthly,fin,false), simVA=simulate(monthly,fin,true);
+  var yearsNo=isFinite(simNo.months)?simNo.months/12:Infinity;
+  var yearsVA=isFinite(simVA.months)?simVA.months/12:Infinity;
+  var aaStart=simVA.aaStart;
+  var Hm=(fin.horizon||0)*12;
+  var afterNo=isFinite(simNo.months)?Math.max(0,Hm-simNo.months):0;
+  var afterVA=isFinite(simVA.months)?Math.max(0,Hm-simVA.months):0;
+  var shortNo=Math.max(0,gap), shortVA=Math.max(0,gapAA);
   return {t:t,room:room,second:second,c1:c1,c2:c2,monthly:monthly,annual:annual,
-    gap:gap,yearsNo:yearsNo,yearsVA:yearsVA,aaStart:aaStart};
+    gap:gap,gapAA:gapAA,yearsNo:yearsNo,yearsVA:yearsVA,aaStart:aaStart,horizon:fin.horizon,
+    shortNo:shortNo,shortVA:shortVA,uncovNo:shortNo*afterNo,uncovVA:shortVA*afterVA,
+    afterNoMo:afterNo,afterVAMo:afterVA};
 }
 
 /* ---------------- CONTROL RENDERING ---------------- */
@@ -365,7 +391,15 @@ function renderResult(key,c){
   if(c.c1>0) rows+='<div class="bd-row"><span>'+(s.couple?"Resident 1":"Resident")+' care</span><span class="bv">'+money(c.c1)+'</span></div>';
   if(s.couple&&c.c2>0) rows+='<div class="bd-row"><span>Resident 2 care</span><span class="bv">'+money(c.c2)+'</span></div>';
   var warn=isFinite(c.yearsNo)&&c.yearsNo<4?" warn":"";
-  var vaSub=!isFinite(c.yearsVA)?"benefit closes the gap":(c.aaStart>0.5?("A&A after \u2248"+Math.round(c.aaStart)+" mo"):"qualifies at move-in");
+  function exLine(months,short,uncov,va){
+    if(short<=0) return va?"A&A closes the gap \u2014 no shortfall.":"Income covers the cost \u2014 no shortfall.";
+    if(months<=0) return "Savings outlast the "+c.horizon+"-yr horizon.";
+    return money(short)+"/mo \u00d7 "+Math.round(months)+" mo = <b>"+money(uncov)+"</b>";
+  }
+  var afterHtml=
+    '<div class="after"><div class="after-h">After savings run out \u00b7 over '+c.horizon+'-yr care horizon</div>'+
+    '<div class="after-row"><span>Without VA</span><span class="av">'+exLine(c.afterNoMo,c.shortNo,c.uncovNo,false)+'</span></div>'+
+    '<div class="after-row"><span>With VA A&amp;A</span><span class="av">'+exLine(c.afterVAMo,c.shortVA,c.uncovVA,true)+'</span></div></div>';
   var html=
     '<div class="r-annual-k">Total annual cost</div>'+
     '<div class="r-annual">'+money(c.annual)+'</div>'+
@@ -374,6 +408,7 @@ function renderResult(key,c){
       '<div class="r-rw'+warn+'"><div class="k">Without VA</div><div class="v">'+yearsLabel(c.yearsNo)+'</div></div>'+
       '<div class="r-rw va"><div class="k">With VA A&amp;A</div><div class="v">'+yearsLabel(c.yearsVA)+'</div></div>'+
     '</div>'+
+    afterHtml+
     '<div class="bd">'+rows+'</div>';
   document.getElementById("result-"+key).innerHTML=html;
 }
@@ -412,6 +447,13 @@ function renderVerdict(a,b){
     return "With A&amp;A, <b>Setup "+(dy>0?"A":"B")+"</b> lasts "+Math.abs(dy).toFixed(1)+" yrs longer ("+yearsLabel(Math.max(av,bv))+" vs "+yearsLabel(Math.min(av,bv))+").";
   }
   parts.push(rwSentence());
+  function exposureSentence(){
+    var au=a.uncovVA, bu=b.uncovVA;
+    if(au<=0&&bu<=0) return "On the VA path, neither leaves an uncovered shortfall within the "+state.fin.horizon+"-yr horizon.";
+    if(Math.abs(au-bu)<1) return "On the VA path, both leave about "+money(au)+" for the family to cover over the horizon.";
+    return "Over the "+state.fin.horizon+"-yr horizon on the VA path, <b>Setup "+(au<bu?"A":"B")+"</b> leaves "+money(Math.abs(au-bu))+" less uncovered ("+money(Math.min(au,bu))+" vs "+money(Math.max(au,bu))+").";
+  }
+  parts.push(exposureSentence());
   document.getElementById("verdict").innerHTML=parts.join(" ");
 }
 
@@ -433,6 +475,8 @@ function update(){
     document.getElementById(map[k]).addEventListener("input",function(e){
       state.fin[k]=Number(e.target.value)||0; update();});
   });
+  document.getElementById("fin-ret").addEventListener("input",function(e){state.fin.ret=(Number(e.target.value)||0)/100;update();});
+  document.getElementById("fin-horizon").addEventListener("input",function(e){state.fin.horizon=Math.max(0,Number(e.target.value)||0);update();});
   ensureTicks();
   renderControls("A"); renderControls("B"); update();
 })();
