@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<!--
+  Miller Care Planner — standalone build for GitHub Pages.
+  No build step, no frameworks. Just commit this file as index.html.
+  To host: create a repo, add this file, then Settings -> Pages ->
+  "Deploy from a branch" -> main / (root). Your link appears in ~1 min.
+  All figures are transcribed from each community's printed rate sheet.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex" />
+<title>Care Cost & Runway — Compare Communities</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#1C2826; --pine:#1F4D45; --pine2:#2E6A5E; --parchment:#F2ECDF;
+  --surface:#FBF8F1; --surface2:#FCFAF4; --line:#DED4C1; --brass:#A8812F;
+  --brass2:#C29A45; --clay:#B5512F; --muted:#736E61;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;background:var(--parchment);color:var(--ink);
+  font-family:'Inter',system-ui,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased;}
+.wrap{max-width:1180px;margin:0 auto;padding:30px 20px 64px;}
+
+/* header */
+.eyebrow{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--pine);margin-bottom:12px;}
+h1{font-family:'Fraunces',serif;font-weight:500;font-size:clamp(28px,4.4vw,46px);
+  line-height:1.04;letter-spacing:-.01em;margin:0 0 12px;}
+h1 em{font-style:italic;color:var(--pine);}
+.sub{max-width:60ch;color:var(--muted);font-size:15px;margin:0 0 22px;}
+
+/* assumptions bar */
+.assume-toggle{display:inline-flex;align-items:center;gap:8px;
+  font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--pine);background:var(--surface);border:1px solid var(--line);border-radius:9px;
+  padding:9px 14px;cursor:pointer;}
+.assume-toggle svg{width:11px;height:7px;fill:none;stroke:currentColor;stroke-width:1.6;transition:transform .2s;}
+.assume-toggle.open svg{transform:rotate(180deg);}
+.assume{display:none;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:14px;
+  background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:16px;}
+.assume.open{display:grid;}
+@media(max-width:680px){.assume.open{grid-template-columns:1fr 1fr;}}
+.numfield{display:flex;flex-direction:column;gap:6px;}
+.numfield label{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--muted);}
+.numfield label em{font-style:normal;text-transform:none;letter-spacing:0;opacity:.75;}
+.numbox{display:flex;align-items:center;border:1px solid var(--line);border-radius:9px;
+  background:var(--surface2);padding:0 11px;}
+.numbox span{color:var(--muted);font-size:14px;}
+.numbox input{flex:1;border:none;background:transparent;font-family:'IBM Plex Mono',monospace;
+  font-size:14px;color:var(--ink);padding:9px 4px;width:100%;}
+.numbox input:focus{outline:none;}
+
+/* compare grid */
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:24px;}
+@media(max-width:880px){.compare{grid-template-columns:1fr;}}
+.side{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;
+  display:flex;flex-direction:column;gap:16px;}
+.side-tag{display:flex;align-items:center;gap:10px;}
+.badge{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;
+  font-family:'Fraunces',serif;font-weight:600;font-size:15px;color:#fff;background:var(--pine);}
+.side-fac{font-family:'Fraunces',serif;font-weight:600;font-size:18px;line-height:1;}
+.side-fac small{display:block;font-family:'Inter';font-weight:400;font-size:11px;color:var(--muted);margin-top:3px;}
+
+.block-label{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.pills{display:flex;flex-wrap:wrap;gap:6px;}
+.pill{font-family:inherit;font-size:12.5px;font-weight:500;padding:6px 11px;border-radius:999px;
+  border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;transition:all .16s;}
+.pill:hover{border-color:var(--pine2);}
+.pill.on{background:var(--pine);border-color:var(--pine);color:#fff;}
+.seg{display:flex;background:#EFE7D7;border:1px solid var(--line);border-radius:10px;padding:3px;gap:3px;}
+.seg-btn{flex:1;font-family:inherit;font-size:12.5px;font-weight:500;padding:7px 6px;border:none;
+  background:transparent;color:var(--muted);border-radius:7px;cursor:pointer;transition:all .16s;}
+.seg-btn.on{background:var(--surface2);color:var(--ink);box-shadow:0 1px 3px rgba(28,40,38,.12);}
+
+.field{display:flex;flex-direction:column;gap:6px;}
+.field>span{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--muted);}
+.select-wrap{position:relative;}
+select{appearance:none;width:100%;font-family:inherit;font-size:13.5px;color:var(--ink);
+  background:var(--surface2);border:1px solid var(--line);border-radius:9px;
+  padding:10px 32px 10px 12px;cursor:pointer;transition:border-color .16s;}
+select:hover{border-color:var(--pine2);}
+.select-wrap svg{position:absolute;right:12px;top:50%;transform:translateY(-50%);width:11px;height:7px;
+  fill:none;stroke:var(--muted);stroke-width:1.6;pointer-events:none;}
+.static-chip{font-size:13px;color:var(--ink);background:#EFE7D7;border:1px dashed var(--line);
+  border-radius:8px;padding:8px 11px;}
+.resident{border:1px solid var(--line);border-radius:12px;padding:13px;display:flex;
+  flex-direction:column;gap:11px;background:var(--surface2);}
+.resident-name{font-family:'Fraunces',serif;font-size:15px;font-weight:600;color:var(--pine);}
+.note{font-size:11.5px;color:var(--muted);margin:0;padding:8px 10px;background:#EFE7D7;
+  border-radius:7px;border-left:2px solid var(--brass);}
+
+/* per-side result */
+.result{border-top:1px solid var(--line);padding-top:16px;margin-top:2px;}
+.r-annual-k{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--muted);margin-bottom:4px;}
+.r-annual{font-family:'Fraunces',serif;font-weight:600;font-size:38px;line-height:.95;
+  letter-spacing:-.02em;font-variant-numeric:tabular-nums;}
+.r-sub{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);margin-top:7px;}
+.r-runways{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;}
+.r-rw{border:1px solid var(--line);border-radius:10px;padding:11px;background:var(--surface2);}
+.r-rw .k{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--muted);}
+.r-rw .v{font-family:'Fraunces',serif;font-weight:600;font-size:24px;line-height:1.1;
+  font-variant-numeric:tabular-nums;}
+.r-rw.va{border-color:var(--brass);background:linear-gradient(180deg,#FBF4E4,var(--surface2));}
+.r-rw.va .v{color:var(--brass);}
+.r-rw.warn .v{color:var(--clay);}
+.bd{margin-top:13px;font-size:12.5px;}
+.bd-row{display:flex;justify-content:space-between;gap:10px;padding:4px 0;border-bottom:1px solid #ECE3D2;}
+.bd-row:last-child{border-bottom:none;}
+.bd-row .bv{font-family:'IBM Plex Mono',monospace;white-space:nowrap;}
+
+/* head to head */
+.h2h{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px;margin-top:22px;}
+.h2h-title{font-family:'Fraunces',serif;font-weight:600;font-size:20px;margin:0 0 4px;}
+.h2h-cap{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);margin:0 0 18px;}
+.h2h-row{display:grid;grid-template-columns:30px 1fr 96px;align-items:center;gap:12px;margin-bottom:12px;}
+.h2h-badge{width:24px;height:24px;border-radius:6px;display:grid;place-items:center;
+  font-family:'Fraunces',serif;font-weight:600;font-size:13px;color:#fff;background:var(--pine);}
+.track{position:relative;height:26px;background:#EBE2D1;border-radius:6px;overflow:hidden;border:1px solid var(--line);}
+.fill-no{position:absolute;left:0;top:0;height:100%;background:linear-gradient(90deg,var(--pine),var(--pine2));
+  width:0;transition:width .55s cubic-bezier(.22,.61,.36,1);}
+.fill-va{position:absolute;top:0;height:100%;left:0;width:0;
+  background:repeating-linear-gradient(135deg,var(--brass) 0 6px,var(--brass2) 6px 12px);opacity:.92;
+  transition:left .55s cubic-bezier(.22,.61,.36,1),width .55s cubic-bezier(.22,.61,.36,1);}
+.tick{position:absolute;top:0;height:100%;border-left:1px dashed rgba(28,40,38,.22);}
+.tick span{position:absolute;top:50%;transform:translateY(-50%);left:4px;
+  font-family:'IBM Plex Mono',monospace;font-size:9px;color:rgba(28,40,38,.5);}
+.h2h-years{font-family:'IBM Plex Mono',monospace;font-size:13px;text-align:right;}
+.h2h-years b{color:var(--brass);font-weight:500;}
+.h2h-legend{display:flex;gap:18px;margin:14px 0 0;font-size:11.5px;color:var(--muted);align-items:center;}
+.swatch{display:inline-block;width:13px;height:9px;border-radius:2px;margin-right:6px;vertical-align:middle;}
+.sw-no{background:var(--pine);}
+.sw-va{background:repeating-linear-gradient(135deg,var(--brass) 0 5px,var(--brass2) 5px 10px);}
+.verdict{margin-top:18px;padding:15px 17px;border-radius:12px;background:var(--surface2);
+  border:1px solid var(--line);border-left:3px solid var(--pine);font-size:14.5px;line-height:1.55;}
+.verdict b{color:var(--pine);}
+
+.disclaimer{font-size:11.5px;line-height:1.6;color:var(--muted);margin:22px 4px 0;max-width:80ch;}
+:focus-visible{outline:2px solid var(--pine2);outline-offset:1px;}
+@media(prefers-reduced-motion:reduce){.fill-no,.fill-va{transition:none;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">Franklin, TN · assisted-living planner</div>
+  <h1>Compare two communities —<br><em>cost and how long the savings last</em></h1>
+  <p class="sub">Set up each side however you like — community, room, residents, care levels. The head-to-head below shows the annual cost and the runway, with and without VA Aid&nbsp;&amp;&nbsp;Attendance.</p>
+
+  <button class="assume-toggle" id="assumeBtn" aria-expanded="false">
+    <span>Financial assumptions</span>
+    <svg viewBox="0 0 12 8"><path d="M1 1l5 5 5-5"/></svg>
+  </button>
+  <div class="assume" id="assumeBox">
+    <div class="numfield"><label>Income / mo <em>· SS + DFAS</em></label><div class="numbox"><span>$</span><input type="number" id="fin-income" value="6000"></div></div>
+    <div class="numfield"><label>Liquid assets <em>· IRA + bank</em></label><div class="numbox"><span>$</span><input type="number" id="fin-assets" value="211198"></div></div>
+    <div class="numfield"><label>VA A&amp;A / mo <em>· vet + 1 dep</em></label><div class="numbox"><span>$</span><input type="number" id="fin-aa" value="2874"></div></div>
+    <div class="numfield"><label>VA net-worth limit <em>· 2026</em></label><div class="numbox"><span>$</span><input type="number" id="fin-limit" value="163699"></div></div>
+  </div>
+
+  <div class="compare">
+    <div class="side">
+      <div class="side-tag"><div class="badge">A</div><div class="side-fac" id="facname-A"></div></div>
+      <div id="controls-A"></div>
+      <div class="result" id="result-A"></div>
+    </div>
+    <div class="side">
+      <div class="side-tag"><div class="badge">B</div><div class="side-fac" id="facname-B"></div></div>
+      <div id="controls-B"></div>
+      <div class="result" id="result-B"></div>
+    </div>
+  </div>
+
+  <div class="h2h">
+    <h2 class="h2h-title">Head to head</h2>
+    <p class="h2h-cap">Years the liquid savings last · pine = without VA, brass = the extension Aid &amp; Attendance buys · scale 0–20+ yrs</p>
+    <div class="h2h-row">
+      <div class="h2h-badge">A</div>
+      <div class="track" id="track-A">
+        <div class="fill-no" id="no-A"></div><div class="fill-va" id="va-A"></div>
+      </div>
+      <div class="h2h-years" id="years-A"></div>
+    </div>
+    <div class="h2h-row">
+      <div class="h2h-badge">B</div>
+      <div class="track" id="track-B">
+        <div class="fill-no" id="no-B"></div><div class="fill-va" id="va-B"></div>
+      </div>
+      <div class="h2h-years" id="years-B"></div>
+    </div>
+    <div class="h2h-legend">
+      <span><span class="swatch sw-no"></span>Without VA</span>
+      <span><span class="swatch sw-va"></span>With VA A&amp;A</span>
+    </div>
+    <div class="verdict" id="verdict"></div>
+  </div>
+
+  <p class="disclaimer">Figures transcribed from each community's printed rate sheet — verify before relying on them. One-time community/reservation fees are shown but excluded from the runway. The home is not counted; selling it adds countable cash and pauses A&amp;A. Each side models one community and setting at a time. Planning estimate, not legal or financial advice.</p>
+</div>
+
+<script>
+/* ---------------- DATA ---------------- */
+var N={name:"None",price:0};
+var FAC={
+ vitality:{label:"Vitality Living",accent:"Franklin",types:{
+   al:{label:"Assisted Living",rooms:[{name:"Studio",price:5325},{name:"Studio Deluxe",price:5525},{name:"One Bedroom",price:6375},{name:"One Bedroom Deluxe",price:6675},{name:"Two Bedroom",price:6900}],secondPerson:1200,
+     careLevels:[N,{name:"Level 1",price:525},{name:"Level 2",price:1050},{name:"Level 3",price:1475},{name:"Level 4",price:2100}],
+     medLevels:[N,{name:"Med L1 (\u22643\u00d7/day)",price:450},{name:"Med L2 (>3\u00d7/day)",price:550},{name:"Med L3 (+diabetic)",price:600}],
+     enhLevels:[N,{name:"Enhanced L1",price:350},{name:"Enhanced L2",price:600}],oneTime:3000,oneTimeLabel:"Community fee"},
+   mc:{label:"Memory Care",rooms:[{name:"Studio Companion (shared)",price:6400},{name:"Studio",price:7850},{name:"Studio Deluxe",price:8500}],secondPerson:0,secondNote:"not published",
+     careLevels:[{name:"Level 1 (included)",price:0},{name:"Level 2",price:1125}],
+     enhLevels:[N,{name:"Enhanced L1",price:350},{name:"Enhanced L2",price:600}],oneTime:3000,oneTimeLabel:"Community fee"}}},
+ harmony:{label:"Harmony",accent:"Senior Services",types:{
+   al:{label:"Assisted Living",rooms:[{name:"Studio",price:5370},{name:"One Bedroom",price:6850},{name:"One Bedroom \u2014 larger",price:8325},{name:"Two Bedroom",price:9800},{name:"Two Bedroom \u2014 larger",price:10065}],secondPerson:1450,
+     careLevels:[N,{name:"First",price:625},{name:"Second",price:1040},{name:"Third",price:1455},{name:"Fourth",price:1975},{name:"Fifth",price:2495}],oneTime:3000,oneTimeLabel:"Community fee (+$1,500 deposit)"},
+   mc:{label:"Memory Care",rooms:[{name:"Companion",price:7635},{name:"Studio",price:8855},{name:"Studio \u2014 premium",price:9125}],secondPerson:3345,
+     careLevels:[N,{name:"One PLUS service",price:500},{name:"Two PLUS services",price:1000},{name:"Three PLUS services",price:1500}],oneTime:3000,oneTimeLabel:"Community fee (+$1,500 deposit)"}}},
+ canterfield:{label:"Canterfield",accent:"of Franklin",types:{
+   al:{label:"Assisted Living",rooms:[{name:"Blue Grass (sm studio)",price:5095},{name:"Preakness (med studio)",price:5295},{name:"Belmont (studio+balcony)",price:5595},{name:"Palomino (med studio)",price:5595},{name:"Derby (lg studio)",price:5895},{name:"Secretariat (1BR)",price:5995},{name:"Triple Crown (1BR)",price:6095},{name:"Canterfield (1BR)",price:6295},{name:"Canterfield (1BR, 1st fl)",price:6595}],secondPerson:1300,
+     careLevels:[N,{name:"Care Level 1",price:600},{name:"Care Level 2",price:1200}],
+     medLevels:[N,{name:"Med Mgmt 1 (1\u201310)",price:300},{name:"Med Mgmt 2 (10+)",price:600}],oneTime:2500,oneTimeLabel:"Community fee (refundable)",note:"Med Mgmt 1 was marked VA-free for a veteran resident."},
+   mc:{label:"Memory Care",rooms:[{name:"Blue Grass (358sf)",price:7700},{name:"Palomino (418sf)",price:7900},{name:"Triple Crown (530sf)",price:8300},{name:"Canterfield (568sf)",price:8500},{name:"Lexington (XL suite)",price:8800}],secondPerson:1300,
+     careLevels:[{name:"Level care (included)",price:0}],
+     medLevels:[{name:"L1 \u226410 meds (incl)",price:0},{name:"L2 complex/diabetic",price:500}],oneTime:2500,oneTimeLabel:"Community fee (refundable)",note:"Rates locked for life; 24-hr nursing & housekeeping included."}}},
+ fountains:{label:"Fountains",accent:"of Franklin",types:{
+   al:{label:"Assisted Living",rooms:[{name:"The Adams (1BR 676sf)",price:6175},{name:"The Benton (1BR 676sf)",price:6425},{name:"The Adams + porch",price:6550},{name:"The Adams + sunroom",price:6925},{name:"The Benton + porch",price:7100},{name:"The Benton + sunroom",price:7425},{name:"The Cameron + porch",price:7575},{name:"The Cameron + sunroom",price:7800},{name:"The Franklin (2BR)",price:8375}],secondPerson:1500,
+     careLevels:[N,{name:"Level One",price:750},{name:"Level Two",price:1000},{name:"Level Three",price:1500}],
+     medLevels:[N,{name:"Medication Mgmt",price:500}],oneTime:2500,oneTimeLabel:"Reservation fee",note:"Larger units are independent/assisted apartments; care added on."},
+   mc:{label:"Memory Care",rooms:[{name:"Private Room (~200sf)",price:7400}],secondPerson:0,secondNote:"not published",
+     careLevels:[{name:"All-inclusive",price:0}],medLevels:[{name:"Med admin (included)",price:0}],oneTime:2500,oneTimeLabel:"Reservation fee",note:"All-inclusive: ADLs, meals, med administration, utilities."}}},
+ somerby:{label:"Somerby",accent:"Franklin",types:{
+   al:{label:"Assisted Living",rooms:[{name:"Studio",price:7295},{name:"One Bedroom",price:7695}],secondPerson:1400,
+     careLevels:[N,{name:"Level 1",price:675},{name:"Level 2",price:1025},{name:"Level 3",price:1325},{name:"Level 4",price:1750},{name:"Level 5",price:2200},{name:"Enhanced",price:2800}],
+     medLevels:[N,{name:"Med L1",price:475},{name:"Med L2",price:575},{name:"Med L3",price:775}],oneTime:7000,oneTimeLabel:"Community fee"},
+   mc:{label:"Memory Care",rooms:[{name:"Private Suite",price:8995}],secondPerson:1400,
+     careLevels:[N,{name:"Enhanced",price:1400}],medLevels:[{name:"Included in care",price:0}],oneTime:7000,oneTimeLabel:"Community fee"}}}
+};
+var ORDER=["vitality","harmony","canterfield","fountains","somerby"];
+var SCALE=20;
+
+/* ---------------- STATE ---------------- */
+var state={
+  fin:{income:6000,assets:211198,aa:2874,limit:163699},
+  sides:{
+    A:{fac:"canterfield",type:"al",room:7,couple:true,r1:{care:0,med:0,enh:0},r2:{care:0,med:0,enh:0}},
+    B:{fac:"somerby",type:"al",room:1,couple:true,r1:{care:0,med:0,enh:0},r2:{care:0,med:0,enh:0}}
+  }
+};
+
+/* ---------------- HELPERS ---------------- */
+function money(n){return "$"+Math.round(n).toLocaleString("en-US");}
+function clamp(i,arr){return Math.min(Math.max(0,i),(arr&&arr.length?arr.length:1)-1);}
+function getType(s){var f=FAC[s.fac];return f.types[s.type]||f.types.al;}
+function esc(t){return String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;");}
+function yearsLabel(y){return !isFinite(y)?"Indefinite":(y>=30?"30+ yrs":y.toFixed(1)+" yrs");}
+
+function residentCost(t,r){
+  var c=t.careLevels?(t.careLevels[clamp(r.care,t.careLevels)].price||0):0;
+  var m=t.medLevels?(t.medLevels[clamp(r.med,t.medLevels)].price||0):0;
+  var e=t.enhLevels?(t.enhLevels[clamp(r.enh,t.enhLevels)].price||0):0;
+  return c+m+e;
+}
+function compute(s,fin){
+  var t=getType(s); var room=t.rooms[clamp(s.room,t.rooms)];
+  var second=s.couple?(t.secondPerson||0):0;
+  var c1=residentCost(t,s.r1); var c2=s.couple?residentCost(t,s.r2):0;
+  var monthly=room.price+second+c1+c2; var annual=monthly*12;
+  var gap=monthly-fin.income, gapAA=monthly-fin.income-fin.aa;
+  var yearsNo,yearsVA,aaStart;
+  if(gap<=0){yearsNo=Infinity;yearsVA=Infinity;aaStart=0;}
+  else{
+    yearsNo=fin.assets/(gap*12);
+    var p1=Math.max(0,fin.assets-fin.limit), m1=p1/gap, p2=fin.assets-p1;
+    var m2=gapAA<=0?Infinity:p2/gapAA;
+    yearsVA=isFinite(m2)?(m1+m2)/12:Infinity; aaStart=m1;
+  }
+  return {t:t,room:room,second:second,c1:c1,c2:c2,monthly:monthly,annual:annual,
+    gap:gap,yearsNo:yearsNo,yearsVA:yearsVA,aaStart:aaStart};
+}
+
+/* ---------------- CONTROL RENDERING ---------------- */
+function selectHTML(name,arr,value,showPrice){
+  var o="";
+  for(var i=0;i<arr.length;i++){
+    var lbl=arr[i].name+((showPrice&&arr[i].price)?("  \u00b7  "+money(arr[i].price)):"");
+    o+='<option value="'+i+'"'+(i===value?" selected":"")+">"+esc(lbl)+"</option>";
+  }
+  return '<div class="field"><span>'+name+'</span><div class="select-wrap"><select data-sel="'+name+'">'+o+'</select><svg viewBox="0 0 12 8"><path d="M1 1l5 5 5-5"/></svg></div></div>';
+}
+function careControl(label,arr,value,key){
+  if(!arr) return "";
+  if(arr.length<=1) return '<div class="field"><span>'+label+'</span><div class="static-chip">'+esc(arr[0].name)+'</div></div>';
+  var o="";
+  for(var i=0;i<arr.length;i++){
+    var lbl=arr[i].name+(arr[i].price?("  \u00b7  "+money(arr[i].price)):"");
+    o+='<option value="'+i+'"'+(i===value?" selected":"")+">"+esc(lbl)+"</option>";
+  }
+  return '<div class="field"><span>'+label+'</span><div class="select-wrap"><select data-care="'+key+'">'+o+'</select><svg viewBox="0 0 12 8"><path d="M1 1l5 5 5-5"/></svg></div></div>';
+}
+function residentCard(who,t,r,prefix){
+  return '<div class="resident"><div class="resident-name">'+who+'</div>'+
+    careControl("Level of care",t.careLevels,r.care,prefix+"-care")+
+    careControl("Medication",t.medLevels,r.med,prefix+"-med")+
+    careControl("Enhanced services",t.enhLevels,r.enh,prefix+"-enh")+'</div>';
+}
+function renderControls(key){
+  var s=state.sides[key]; var f=FAC[s.fac]; var t=getType(s);
+  document.getElementById("facname-"+key).innerHTML=esc(f.label)+"<small>"+esc(f.accent)+"</small>";
+  var html="";
+  html+='<div><div class="block-label">Community</div><div class="pills">';
+  for(var i=0;i<ORDER.length;i++){var k=ORDER[i];
+    html+='<button class="pill'+(k===s.fac?" on":"")+'" data-fac="'+k+'">'+esc(FAC[k].label)+'</button>';}
+  html+='</div></div>';
+  html+='<div><div class="block-label">Setting</div><div class="seg">';
+  var tk=Object.keys(f.types);
+  for(var j=0;j<tk.length;j++){html+='<button class="seg-btn'+(tk[j]===s.type?" on":"")+'" data-type="'+tk[j]+'">'+esc(f.types[tk[j]].label)+'</button>';}
+  html+='</div></div>';
+  html+=selectHTML("Room / floor plan",t.rooms,clamp(s.room,t.rooms),true);
+  html+='<div><div class="block-label">Residents</div><div class="seg">'+
+    '<button class="seg-btn'+(!s.couple?" on":"")+'" data-couple="0">One</button>'+
+    '<button class="seg-btn'+(s.couple?" on":"")+'" data-couple="1">Couple</button></div></div>';
+  html+=residentCard(s.couple?"Resident 1":"Resident",t,s.r1,"r1");
+  if(s.couple) html+=residentCard("Resident 2",t,s.r2,"r2");
+  if(t.note) html+='<p class="note">'+esc(t.note)+'</p>';
+  var box=document.getElementById("controls-"+key);
+  box.innerHTML=html;
+  bindControls(key,box);
+}
+function bindControls(key,box){
+  var s=state.sides[key];
+  box.querySelectorAll("[data-fac]").forEach(function(b){b.onclick=function(){
+    s.fac=b.getAttribute("data-fac");
+    if(!FAC[s.fac].types[s.type]) s.type="al";
+    s.room=0; s.r1={care:0,med:0,enh:0}; s.r2={care:0,med:0,enh:0};
+    renderControls(key); update();};});
+  box.querySelectorAll("[data-type]").forEach(function(b){b.onclick=function(){
+    s.type=b.getAttribute("data-type"); s.room=0;
+    s.r1={care:0,med:0,enh:0}; s.r2={care:0,med:0,enh:0};
+    renderControls(key); update();};});
+  box.querySelectorAll("[data-couple]").forEach(function(b){b.onclick=function(){
+    s.couple=b.getAttribute("data-couple")==="1"; renderControls(key); update();};});
+  box.querySelectorAll('[data-sel="Room / floor plan"]').forEach(function(sel){sel.onchange=function(){
+    s.room=Number(sel.value); update();};});
+  box.querySelectorAll("[data-care]").forEach(function(sel){sel.onchange=function(){
+    var p=sel.getAttribute("data-care").split("-"); s[p[0]][p[1]]=Number(sel.value); update();};});
+}
+
+/* ---------------- RESULTS ---------------- */
+function renderResult(key,c){
+  var s=state.sides[key];
+  var rows="";
+  rows+='<div class="bd-row"><span>Room \u00b7 '+esc(c.room.name)+'</span><span class="bv">'+money(c.room.price)+'</span></div>';
+  if(s.couple){
+    if(c.second) rows+='<div class="bd-row"><span>Second resident</span><span class="bv">'+money(c.second)+'</span></div>';
+    else if(c.t.secondNote) rows+='<div class="bd-row"><span>Second resident</span><span class="bv">'+esc(c.t.secondNote)+'</span></div>';
+  }
+  if(c.c1>0) rows+='<div class="bd-row"><span>'+(s.couple?"Resident 1":"Resident")+' care</span><span class="bv">'+money(c.c1)+'</span></div>';
+  if(s.couple&&c.c2>0) rows+='<div class="bd-row"><span>Resident 2 care</span><span class="bv">'+money(c.c2)+'</span></div>';
+  var warn=isFinite(c.yearsNo)&&c.yearsNo<4?" warn":"";
+  var vaSub=!isFinite(c.yearsVA)?"benefit closes the gap":(c.aaStart>0.5?("A&A after \u2248"+Math.round(c.aaStart)+" mo"):"qualifies at move-in");
+  var html=
+    '<div class="r-annual-k">Total annual cost</div>'+
+    '<div class="r-annual">'+money(c.annual)+'</div>'+
+    '<div class="r-sub">'+money(c.monthly)+'/mo \u00b7 '+money(c.t.oneTime)+' '+esc(c.t.oneTimeLabel)+'</div>'+
+    '<div class="r-runways">'+
+      '<div class="r-rw'+warn+'"><div class="k">Without VA</div><div class="v">'+yearsLabel(c.yearsNo)+'</div></div>'+
+      '<div class="r-rw va"><div class="k">With VA A&amp;A</div><div class="v">'+yearsLabel(c.yearsVA)+'</div></div>'+
+    '</div>'+
+    '<div class="bd">'+rows+'</div>';
+  document.getElementById("result-"+key).innerHTML=html;
+}
+function setBars(key,c){
+  var wNo=Math.max(0,Math.min(1,(isFinite(c.yearsNo)?c.yearsNo:SCALE)/SCALE))*100;
+  var wVA=Math.max(0,Math.min(1,(isFinite(c.yearsVA)?c.yearsVA:SCALE)/SCALE))*100;
+  document.getElementById("no-"+key).style.width=wNo+"%";
+  var va=document.getElementById("va-"+key);
+  va.style.left=wNo+"%"; va.style.width=Math.max(0,wVA-wNo)+"%";
+  document.getElementById("years-"+key).innerHTML=
+    yearsLabel(c.yearsNo)+' &nbsp;<b>'+yearsLabel(c.yearsVA)+'</b>';
+}
+function ensureTicks(){
+  ["A","B"].forEach(function(k){
+    var tr=document.getElementById("track-"+k);
+    if(tr.querySelector(".tick")) return;
+    [5,10,15,20].forEach(function(t){
+      var d=document.createElement("div"); d.className="tick"; d.style.left=(t/SCALE*100)+"%";
+      d.innerHTML="<span>"+t+"</span>"; tr.appendChild(d);
+    });
+  });
+}
+function renderVerdict(a,b){
+  var parts=[];
+  var d=a.annual-b.annual;
+  if(Math.abs(d)<1) parts.push("Both setups cost about the same per year.");
+  else parts.push("<b>Setup "+(d<0?"A":"B")+"</b> costs "+money(Math.abs(d))+"/yr less ("+money(Math.abs(d)/12)+"/mo).");
+  // runway with A&A
+  function rwSentence(){
+    var av=a.yearsVA, bv=b.yearsVA;
+    if(!isFinite(av)&&!isFinite(bv)) return "With A&amp;A, both sustain indefinitely \u2014 the benefit closes the monthly gap either way.";
+    if(!isFinite(av)) return "With A&amp;A, <b>Setup A</b> doesn\u2019t deplete, while Setup B lasts "+yearsLabel(bv)+".";
+    if(!isFinite(bv)) return "With A&amp;A, <b>Setup B</b> doesn\u2019t deplete, while Setup A lasts "+yearsLabel(av)+".";
+    var dy=av-bv;
+    if(Math.abs(dy)<0.1) return "With A&amp;A, both last about "+yearsLabel(av)+".";
+    return "With A&amp;A, <b>Setup "+(dy>0?"A":"B")+"</b> lasts "+Math.abs(dy).toFixed(1)+" yrs longer ("+yearsLabel(Math.max(av,bv))+" vs "+yearsLabel(Math.min(av,bv))+").";
+  }
+  parts.push(rwSentence());
+  document.getElementById("verdict").innerHTML=parts.join(" ");
+}
+
+/* ---------------- UPDATE ---------------- */
+function update(){
+  var a=compute(state.sides.A,state.fin);
+  var b=compute(state.sides.B,state.fin);
+  renderResult("A",a); renderResult("B",b);
+  setBars("A",a); setBars("B",b);
+  renderVerdict(a,b);
+}
+
+/* ---------------- INIT ---------------- */
+(function init(){
+  var btn=document.getElementById("assumeBtn"), box=document.getElementById("assumeBox");
+  btn.onclick=function(){var open=box.classList.toggle("open");btn.classList.toggle("open",open);btn.setAttribute("aria-expanded",open);};
+  var map={income:"fin-income",assets:"fin-assets",aa:"fin-aa",limit:"fin-limit"};
+  Object.keys(map).forEach(function(k){
+    document.getElementById(map[k]).addEventListener("input",function(e){
+      state.fin[k]=Number(e.target.value)||0; update();});
+  });
+  ensureTicks();
+  renderControls("A"); renderControls("B"); update();
+})();
+</script>
+</body>
+</html>
