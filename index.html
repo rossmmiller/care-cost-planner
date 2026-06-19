@@ -63,6 +63,7 @@ h1 em{font-style:italic;color:var(--pine);}
 .after-row>span:first-child{color:var(--muted);}
 .av{font-family:'IBM Plex Mono',monospace;text-align:right;}
 .av b{color:var(--clay);font-weight:600;}
+.av .nt{font-family:'Inter',sans-serif;font-size:11px;color:var(--muted);}
 
 /* compare grid */
 .compare{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:24px;}
@@ -393,8 +394,8 @@ function renderResult(key,c){
   var warn=isFinite(c.yearsNo)&&c.yearsNo<4?" warn":"";
   function exLine(months,short,uncov,va){
     if(short<=0) return va?"A&A closes the gap \u2014 no shortfall.":"Income covers the cost \u2014 no shortfall.";
-    if(months<=0) return "Savings outlast the "+c.horizon+"-yr horizon.";
-    return money(short)+"/mo \u00d7 "+Math.round(months)+" mo = <b>"+money(uncov)+"</b>";
+    if(months>0) return money(short)+"/mo \u00d7 "+Math.round(months)+" mo = <b>"+money(uncov)+"</b>";
+    return money(short)+"/mo shortfall \u00b7 <span class=\"nt\">starts after the "+c.horizon+"-yr horizon</span>";
   }
   var afterHtml=
     '<div class="after"><div class="after-h">After savings run out \u00b7 over '+c.horizon+'-yr care horizon</div>'+
